@@ -77,9 +77,7 @@ import { createAdapter, setupPrimary } from '@socket.io/cluster-adapter';
         );
       } catch (e) {
         if (e.errno === 19 /* SQLITE_CONSTRAINT */ ) {
-          callback();
-        } else {
-          // nothing to do, just let the client retry
+          if (typeof callback === 'function') callback();
         }
         return;
       }
@@ -106,7 +104,7 @@ import { createAdapter, setupPrimary } from '@socket.io/cluster-adapter';
   });
 
   // each worker will listen on a distinct port
-  const port = 3001;
+  const port = 3000;
 
   server.listen(port, () => {
     console.log(`server running at http://localhost:${port}`);
