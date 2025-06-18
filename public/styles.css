@@ -1,0 +1,65 @@
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #222;
+  color: #eee;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+ul#messages {
+  list-style-type: none;
+  margin: 0;
+  padding: 1em;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  background: #181818;
+}
+
+ul#messages li {
+  padding: 0.5em 1em;
+  margin-bottom: 0.5em;
+  background: #333;
+  border-radius: 6px;
+  word-break: break-word;
+}
+
+form {
+  display: flex;
+  gap: 0.5em;
+  padding: 1em;
+  background: #111;
+  flex-shrink: 0;
+}
+
+form input[type="text"],
+form input[type="search"],
+form input#input {
+  flex: 1 1 auto;
+  padding: 0.5em;
+  border: none;
+  border-radius: 6px;
+  font-size: 1em;
+  background: #222;
+  color: #c8b9b9;
+}
+
+form button {
+  padding: 0.5em 1em;
+  border: none;
+  border-radius: 6px;
+  background: #cfae1c;
+  color: black;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.5s;
+}
+
+form button:hover {
+  background: #a19906;
+}

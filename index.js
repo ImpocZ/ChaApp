@@ -46,6 +46,8 @@ import { createAdapter, setupPrimary } from '@socket.io/cluster-adapter';
 
   const __dirname = dirname(fileURLToPath(import.meta.url));
 
+  app.use(express.static(join(__dirname, 'public')));
+  
   app.get('/', (req, res) => {
     res.sendFile(join(__dirname, 'index.html'));
   });
@@ -86,7 +88,7 @@ import { createAdapter, setupPrimary } from '@socket.io/cluster-adapter';
       } else {
         io.emit('chat message', msgObj, result.lastID);
       }
-      callback();
+      if (typeof callback === 'function') callback();
     });
 
     if (!socket.recovered) {
@@ -104,7 +106,7 @@ import { createAdapter, setupPrimary } from '@socket.io/cluster-adapter';
   });
 
   // each worker will listen on a distinct port
-  const port = 3000;
+  const port = 3001;
 
   server.listen(port, () => {
     console.log(`server running at http://localhost:${port}`);
