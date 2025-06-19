@@ -54,22 +54,63 @@ import { createAdapter, setupPrimary } from '@socket.io/cluster-adapter';
 
   io.on('connection', async (socket) => {
     //tracking rooms
-    socket.currentRoom = null;
-    socket.on('join room', (roomName) => {
+    const defaultRoom = 'Lobby';
+    socket.join(defaultRoom);
+    socket.currentRoom = defaultRoom;
+    socket.emit('joined room', defaultRoom);
+    console.log(`Socket ${socket.id} connected and joined room: ${defaultRoom}`);
+      try {
+        await db.each(
+          'SELECT id, content FROM messages WHERE id > ?',
+          [socket.handshake.auth.serverOffset || 0],
+          (_err, row) => {
+            const msg = JSON.parse(row.content);
+            if (msg.room === defaultRoom) {
+              socket.emit('chat message', msg, row.id);
+            }
+          }
+        );
+      } catch (e) {
+        console.error('Error fetching messages:', e);
+      }
+
+    socket.on('join room', async (roomName) => {
       // Leave previous room if any
-      if (socket.currentRoom) {
-        socket.leave(socket.currentRoom);
-        console.log(`Socket ${socket.id} left room: ${socket.currentRoom}`);
+      for (const room of socket.rooms) {
+        if (room !== socket.id && room !== roomName) {
+          socket.leave(room);
+          console.log(`Socket ${socket.id} left room: ${room}`);
+        }
       }
       // Join new room
       socket.join(roomName);
       socket.currentRoom = roomName;
       socket.emit('joined room', roomName);
       console.log(`Socket ${socket.id} joined room: ${roomName}`);
+
+      try {
+        await db.each(
+          'SELECT id, content FROM messages WHERE id > ?',
+          [socket.handshake.auth.serverOffset || 0],
+          (_err, row) => {
+            const msg = JSON.parse(row.content);
+            if (msg.room === roomName) {
+              socket.emit('chat message', msg, row.id);
+            }
+          }
+        );
+      } catch (e) {
+        console.error('Error fetching messages:', e);
+      }
     });
+
+
 
     socket.on('chat message', async (msgObj, clientOffset, callback) => {
       let result;
+
+      msgObj.room = socket.currentRoom;
+
       try {
         result = await db.run(
           'INSERT INTO messages (content, client_offset) VALUES (?, ?)',
@@ -89,7 +130,7 @@ import { createAdapter, setupPrimary } from '@socket.io/cluster-adapter';
       if (typeof callback === 'function') callback();
     });
 
-    if (!socket.recovered) {
+    /*if (!socket.recovered) {
       try {
         await db.each('SELECT id, content FROM messages WHERE id > ?',
           [socket.handshake.auth.serverOffset || 0],
@@ -100,11 +141,11 @@ import { createAdapter, setupPrimary } from '@socket.io/cluster-adapter';
       } catch (e) {
         console.error('Error fetching messages:', e);
       }
-    }
+    }*/
   });
 
-  // each worker will listen on a distinct port
-  const port = 3000;
+  // each worker will listen on a distinct port  - not anymore
+  const port = 3000 //3001;
 
   server.listen(port, () => {
     console.log(`server running at http://localhost:${port}`);

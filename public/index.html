@@ -5,7 +5,13 @@
     <link rel="stylesheet" href="/styles.css">
     <title>Socket.IO chat</title>
   </head>
+  <header>
+    <div id="current-room">
+      Room: Lobby
+    </div>
+  </header>
   <body>
+  
     <ul id="messages"></ul>
     <form id="form" action="">
       <input id="input" autocomplete="off" /><button>Send</button>
@@ -14,11 +20,21 @@
     </form>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-      let nickname = prompt('Enter your nickname:');
-      if (!nickname) nickname = 'Anonymous';
+      // Declaring few constants, that I will need for use near the start
+      const toggleButton = document.getElementById('toggle-btn');
+      const currentRoom = document.getElementById('current-room');
 
+      //Getting the nick
+      let memNickname = prompt('Enter your nickname:');
+      if (!memNickname) memNickname = 'Anonymous';
+      let nickname = memNickname;
+      
+
+      
+      
       let counter = 0;
 
+      // Making the messages always try to remember each other
       const socket = io({
         auth: {
           serverOffset: 0
@@ -27,30 +43,47 @@
         retries: 3,
       });
       const joinBtn = document.getElementById('join-btn');
-      //let joinedRooms = [];
 
+      if (nickname === "Anonymous"){
+        toggleButton.innerHTML = `Create a nickname`;
+      } else {
+        toggleButton.innerHTML = `Disconnect from ${nickname}`;
+      }
+      
       joinBtn.addEventListener('click', (e) => {
         e.preventDefault();
         const roomName = prompt('Enter room name:');
         if (roomName) {
-          socket.emit('join room', roomName);
           console.log(`Socket ${socket.id} joined room: ${roomName}`);
-          joinBtn.innerText = `Joined ${roomName}`;
+          socket.emit('join room', roomName);
+          socket.auth.room = roomName;
+          joinBtn.innerHTML = `Joined ${roomName || "No room"}`;
         }
       });
 
-      const toggleButton = document.getElementById('toggle-btn');
+      
       toggleButton.addEventListener('click', (e) => {
         e.preventDefault();
-        // Leave all rooms before disconnecting
-        socket.emit('leave all rooms', joinedRooms);
-        //joinedRooms = [];
-        if (socket.connected) {
-          toggleButton.innerText = 'Connect';
-          socket.disconnect();
+        if (memNickname === "Anonymous"){
+          memNickname = prompt('Enter your nickname:');
+          while (!memNickname) memNickname = prompt("Youre not running away this time, enter your nickname:");
+          nickname = memNickname;
+          toggleButton.innerHTML = `Disconnect from ${nickname}`;
+          console.log(`Set nickname to: ${nickname}`);
+        }
+        else if (nickname !== "Anonymous") {
+          console.log(`Disconnected from ${nickname}`);
+          
+          nickname =  "Anonymous";
+          socket.auth.nickname = nickname;
+          toggleButton.innerHTML = `Connect as ${memNickname}`;
+          
         } else {
-          toggleButton.innerText = 'Disconnect';
-          socket.connect();
+          nickname = memNickname;
+          
+          toggleButton.innerHTML = `Disconnect from ${nickname}`;
+          socket.auth.nickname = nickname;
+          console.log(`Reconnected as: ${nickname}`);
         }
       });
 
@@ -71,9 +104,15 @@
         }
       });
 
+      socket.on('joined room', (roomName) => {
+        messages.innerHTML = '';
+        joinBtn.innerText = `Joined ${roomName || "Lobby"}`;
+        currentRoom.textContent = `Room: ${roomName}`;
+      });
+
       socket.on('chat message', (msg, serverOffset) => {
         const item = document.createElement('li');
-        item.textContent = `[${msg.nickname}]: ${msg.text}`;
+        item.textContent = `[${msg.nickname}]->{${msg.room || "Lobby"}}: ${msg.text}`;
         messages.appendChild(item);
         window.scrollTo(0, document.body.scrollHeight);
         socket.auth.serverOffset = serverOffset;
